@@ -351,7 +351,7 @@ namespace RetroBar
         private void ClockFormatHelpButton_Click(object sender, RoutedEventArgs e)
         {
             // Show help locally; never launch a browser or website.
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 "Custom date/time format examples: HH:mm, hh:mm tt, ddd MMM d, yyyy-MM-dd.\n" +
                 "H = 24-hour time; h = 12-hour time; m = minutes; s = seconds; tt = AM/PM.",
                 "Offline date/time formatting help",

@@ -22,6 +22,8 @@ namespace RetroBar.Utilities
         private const string THEME_FOLDER = "Themes";
         private const string THEME_EXT = DICT_EXT;
 
+        private ResourceDictionary _selectedTheme;
+
         public DictionaryManager()
         {
             Settings.Instance.PropertyChanged += Settings_PropertyChanged;
@@ -29,7 +31,12 @@ namespace RetroBar.Utilities
 
         public void SetThemeFromSettings()
         {
-            SetTheme(THEME_DEFAULT);
+            // App.xaml supplies the base theme for every selection.
+            if (_selectedTheme != null)
+            {
+                GetMergedDictionaries().Remove(_selectedTheme);
+                _selectedTheme = null;
+            }
 
             if (Settings.Instance.Theme.StartsWith(THEME_DEFAULT))
             {
@@ -66,25 +73,6 @@ namespace RetroBar.Utilities
             return Application.Current.Resources.MergedDictionaries;
         }
 
-        private static ResourceDictionary GetActualThemeDictionary()
-        {
-            foreach (ResourceDictionary rd in GetMergedDictionaries()
-                .Where(rd => rd.Source.ToString().Contains($"{THEME_FOLDER}/")))
-            {
-                return rd;
-            }
-
-            return null;
-        }
-
-        private void ClearPreviousThemes()
-        {
-            if (GetActualThemeDictionary() != null)
-            {
-                _ = GetMergedDictionaries().Remove(GetActualThemeDictionary());
-            }
-        }
-
         public void SetLanguageFromSettings()
         {
             SetLanguage(LANG_FALLBACK);
@@ -116,9 +104,6 @@ namespace RetroBar.Utilities
             if (dictionary == dictDefault)
             {
                 // The original defaults are compiled application XAML resources.
-                if (dictType == 0)
-                    ClearPreviousThemes();
-
                 source = new Uri($"{dictFolder}/{dictDefault}.{dictExtension}", UriKind.Relative);
             }
             else
@@ -132,9 +117,6 @@ namespace RetroBar.Utilities
                     return;
                 }
 
-                if (dictType == 0)
-                    ClearPreviousThemes();
-
                 source = new UriBuilder(Uri.UriSchemeFile, string.Empty)
                 {
                     Path = filePath
@@ -143,7 +125,10 @@ namespace RetroBar.Utilities
 
             try
             {
-                GetMergedDictionaries().Add(new ResourceDictionary { Source = source });
+                var loaded = new ResourceDictionary { Source = source };
+                GetMergedDictionaries().Add(loaded);
+                if (dictType == 0)
+                    _selectedTheme = loaded;
             }
             catch (Exception e)
             {
