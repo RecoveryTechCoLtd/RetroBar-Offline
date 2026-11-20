@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Windows.Forms;
 
 namespace RetroBar
 {
     internal sealed class Program
     {
-        private const string MutexName = "RetroBar";
+        private const string MutexName = "RecoveryTechCoLtd.RetroBarOffline";
         private const int MutexAttempts = 10;
         private const int MutexWaitMs = 1000;
 

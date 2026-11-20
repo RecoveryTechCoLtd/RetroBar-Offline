@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -6,7 +6,6 @@ using ManagedShell.Common.Helpers;
 using RetroBar.Utilities;
 using System.Windows;
 using ManagedShell.Common.Logging;
-using Microsoft.Win32;
 using ManagedShell.AppBar;
 using System.Windows.Forms;
 using ManagedShell.WindowsTray;
@@ -28,7 +27,6 @@ namespace RetroBar
         private readonly NotificationArea _notificationArea;
         private readonly AppBarScreen _screen;
 
-        private FileSystemWatcher _themesWatcher;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -79,7 +77,6 @@ namespace RetroBar
             InitializeComponent();
 
             LoadPreviewHeight();
-            LoadAutoStart();
             LoadLanguages();
             LoadOSSupport();
             LoadRows();
@@ -142,31 +139,6 @@ namespace RetroBar
             NotificationAreaPreviewControl.Height = size;
         }
 
-        private void LoadAutoStart()
-        {
-            try
-            {
-                RegistryKey rKey = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", false);
-                List<string> rKeyValueNames = rKey?.GetValueNames().ToList();
-
-                if (rKeyValueNames != null)
-                {
-                    if (rKeyValueNames.Contains("RetroBar"))
-                    {
-                        cbAutoStart.IsChecked = true;
-                    }
-                    else
-                    {
-                        cbAutoStart.IsChecked = false;
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                ShellLogger.Error($"PropertiesWindow: Unable to load autorun setting from registry: {e.Message}");
-            }
-        }
-
         private void LoadLanguages()
         {
             foreach (var language in _dictionaryManager.GetLanguages())
@@ -205,75 +177,11 @@ namespace RetroBar
 
         private void LoadThemes()
         {
+            // The offline fork only exposes built-in, integrity-verified themes.
             foreach (var theme in _dictionaryManager.GetThemes())
             {
                 cboThemeSelect.Items.Add(theme);
             }
-            try
-            {
-                string path = _dictionaryManager.GetThemeInstallDir();
-                Directory.CreateDirectory(path);
-
-                _themesWatcher = new FileSystemWatcher(_dictionaryManager.GetThemeInstallDir());
-                _themesWatcher.Created += ThemesWatcher_Created;
-                _themesWatcher.Deleted += ThemesWatcher_Deleted;
-                _themesWatcher.Renamed += ThemesWatcher_Renamed;
-                _themesWatcher.Filter = "*.xaml";
-                _themesWatcher.EnableRaisingEvents = true;
-            }
-            catch (Exception e)
-            {
-                ShellLogger.Warning($"Unable to watch custom themes directory: {e}");
-            }
-        }
-
-        private void ThemesWatcher_Created(object sender, FileSystemEventArgs e)
-        {
-            string newTheme = Path.GetFileNameWithoutExtension(e.FullPath);
-            Dispatcher.BeginInvoke(() => 
-            {
-                if (!cboThemeSelect.Items.Contains(newTheme))
-                {
-                    cboThemeSelect.Items.Add(newTheme);
-                }
-            });
-        }
-
-        private void ThemesWatcher_Deleted(object sender, FileSystemEventArgs e)
-        {
-            string removedTheme = Path.GetFileNameWithoutExtension(e.FullPath);
-            Dispatcher.BeginInvoke(() =>
-            {
-                if (cboThemeSelect.Items.Contains(removedTheme))
-                {
-                    if (cboThemeSelect.SelectedItem is string selected && selected == removedTheme)
-                    {
-                        cboThemeSelect.SelectedIndex = 0;
-                    }
-                    cboThemeSelect.Items.Remove(removedTheme);
-                }
-            });
-        }
-
-        private void ThemesWatcher_Renamed(object sender, RenamedEventArgs e)
-        {
-            string removedTheme = Path.GetFileNameWithoutExtension(e.OldFullPath);
-            string newTheme = Path.GetFileNameWithoutExtension(e.FullPath);
-            Dispatcher.BeginInvoke(() =>
-            {
-                if (cboThemeSelect.Items.Contains(removedTheme))
-                {
-                    if (cboThemeSelect.SelectedItem is string selected && selected == removedTheme)
-                    {
-                        cboThemeSelect.SelectedIndex = 0;
-                    }
-                    cboThemeSelect.Items.Remove(removedTheme);
-                }
-                if (!cboThemeSelect.Items.Contains(newTheme))
-                {
-                    cboThemeSelect.Items.Add(newTheme);
-                }
-            });
         }
 
         private void UpdateWindowPosition()
@@ -323,12 +231,6 @@ namespace RetroBar
         private void PropertiesWindow_OnClosing(object sender, CancelEventArgs e)
         {
             _instance = null;
-            if (_themesWatcher != null)
-            {
-                _themesWatcher.Created -= ThemesWatcher_Created;
-                _themesWatcher.Deleted -= ThemesWatcher_Deleted;
-                _themesWatcher.Renamed -= ThemesWatcher_Renamed;
-            }
             Settings.Instance.PropertyChanged -= Settings_PropertyChanged;
         }
 
@@ -342,29 +244,6 @@ namespace RetroBar
         private void PropertiesWindow_OnContentRendered(object sender, EventArgs e)
         {
             UpdateWindowPosition();
-        }
-
-        private void CbAutoStart_OnChecked(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                RegistryKey rKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
-                var chkBox = (System.Windows.Controls.CheckBox)sender;
-
-                if (chkBox.IsChecked.Equals(false))
-                {
-                    rKey?.DeleteValue("RetroBar");
-                }
-                else
-                {
-                    // Registry Run values are command lines; quote the executable path to handle spaces in usernames/paths.
-                    rKey?.SetValue("RetroBar", $"\"{ExePath.GetExecutablePath()}\"");
-                }
-            }
-            catch (Exception exception)
-            {
-                ShellLogger.Error($"PropertiesWindow: Unable to update registry autorun setting: {exception.Message}");
-            }
         }
 
         private void LoadClockActions()
@@ -469,22 +348,15 @@ namespace RetroBar
             NotificationPropertiesWindow.Open(_notificationArea, new Point(Left, Top));
         }
 
-        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
-        {
-            ShellHelper.ExecuteProcess(e.Uri.AbsoluteUri);
-            e.Handled = true;
-        }
-
-        private void OpenCustomThemesFolder_OnClick(object sender, RoutedEventArgs e)
-        {
-            string path = _dictionaryManager.GetThemeInstallDir();
-            Directory.CreateDirectory(path);
-            ShellHelper.StartProcess(path);
-        }
-
         private void ClockFormatHelpButton_Click(object sender, RoutedEventArgs e)
         {
-            ShellHelper.ExecuteProcess("https://learn.microsoft.com/dotnet/standard/base-types/custom-date-and-time-format-strings#table");
+            // Show help locally; never launch a browser or website.
+            MessageBox.Show(
+                "Custom date/time format examples: HH:mm, hh:mm tt, ddd MMM d, yyyy-MM-dd.\n" +
+                "H = 24-hour time; h = 12-hour time; m = minutes; s = seconds; tt = AM/PM.",
+                "Offline date/time formatting help",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
     }
 }

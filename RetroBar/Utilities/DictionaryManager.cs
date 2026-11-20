@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -111,88 +111,60 @@ namespace RetroBar.Utilities
 
         private void SetDictionary(string dictionary, string dictFolder, string dictDefault, string dictExtension, int dictType)
         {
-            string dictFilePath;
+            Uri source;
 
             if (dictionary == dictDefault)
             {
+                // The original defaults are compiled application XAML resources.
                 if (dictType == 0)
-                {
                     ClearPreviousThemes();
-                }
-                dictFilePath = Path.ChangeExtension(Path.Combine(dictFolder, dictDefault), dictExtension);
+
+                source = new Uri($"{dictFolder}/{dictDefault}.{dictExtension}", UriKind.Relative);
             }
             else
             {
-                // Built-in dictionary
-                dictFilePath = Path.ChangeExtension(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, dictFolder, dictionary),
-                                                    dictExtension);
-
-                if (!File.Exists(dictFilePath))
+                // NO arbitrary XAML from AppData, remote URI, or manually copied files.
+                // All accepted files must match the SHA256 of an original bundled resource.
+                if (!TrustedDictionaries.VerifyEveryBundledFile() ||
+                    !TrustedDictionaries.TryGetVerifiedFile(dictFolder, dictionary, out string filePath))
                 {
-                    // Installed dictionary in AppData directory
-                    dictFilePath = Path.ChangeExtension(dictFolder.InLocalAppData(dictionary), dictExtension);
-
-                    if (!File.Exists(dictFilePath))
-                    {
-                        // Custom dictionary in app directory
-                        dictFilePath =
-                            Path.ChangeExtension(Path.Combine(Path.GetDirectoryName(ExePath.GetExecutablePath()), dictFolder, dictionary),
-                                                 dictExtension);
-
-                        if (!File.Exists(dictFilePath))
-                        {
-                            return;
-                        }
-                    }
+                    ManagedShell.Common.Logging.ShellLogger.Warning("Bundled XAML integrity check failed; external XAML was not loaded.");
+                    return;
                 }
+
+                if (dictType == 0)
+                    ClearPreviousThemes();
+
+                source = new UriBuilder(Uri.UriSchemeFile, string.Empty)
+                {
+                    Path = filePath
+                }.Uri;
             }
 
             try
             {
-                GetMergedDictionaries().Add(new ResourceDictionary()
-                {
-                    Source = new Uri(dictFilePath, UriKind.RelativeOrAbsolute)
-                });
+                GetMergedDictionaries().Add(new ResourceDictionary { Source = source });
             }
             catch (Exception e)
             {
-                ManagedShell.Common.Logging.ShellLogger.Error($"Error loading dictionaries: {e.Message} {e.InnerException?.Message}");
+                ManagedShell.Common.Logging.ShellLogger.Error($"Error loading bundled dictionary: {e.Message}");
             }
-        }
-
-        public string GetThemeInstallDir()
-        {
-            return THEME_FOLDER.InLocalAppData();
         }
 
         public List<string> GetThemes()
         {
-            return GetDictionaries(THEME_DEFAULT, THEME_FOLDER, THEME_EXT);
+            var themes = new List<string> { THEME_DEFAULT };
+            themes.AddRange(TrustedDictionaries.GetNames(THEME_FOLDER)
+                .Where(name => name != THEME_DEFAULT));
+            return themes;
         }
 
         public List<string> GetLanguages()
         {
-            List<string> languages = new List<string> { LANG_DEFAULT };
-            languages.AddRange(GetDictionaries(LANG_FALLBACK, LANG_FOLDER, LANG_EXT));
+            var languages = new List<string> { LANG_DEFAULT, LANG_FALLBACK };
+            languages.AddRange(TrustedDictionaries.GetNames(LANG_FOLDER)
+                .Where(name => name != LANG_FALLBACK && name != LANG_DEFAULT));
             return languages;
-        }
-
-        private List<string> GetDictionaries(string dictDefault, string dictFolder, string dictExtension)
-        {
-            List<string> dictionaries = new List<string> { dictDefault };
-
-            // Built-in dictionaries
-            dictionaries.AddFrom(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, dictFolder), dictExtension);
-
-            // Installed AppData dictionaries
-            dictionaries.AddFrom(dictFolder.InLocalAppData(), dictExtension);
-
-            // Same-folder dictionaries
-            // Because RetroBar is published as a single-file app, it gets extracted to a temp directory, so custom dictionaries won't be there.
-            // Get the executable path to find the custom dictionaries directory when not a debug build.
-            dictionaries.AddFrom(Path.Combine(Path.GetDirectoryName(ExePath.GetExecutablePath()), dictFolder), dictExtension, true);
-
-            return dictionaries;
         }
 
         private void Settings_PropertyChanged(object sender, PropertyChangedEventArgs e)

@@ -8,7 +8,6 @@ using ManagedShell.WindowsTray;
 using RetroBar.Utilities;
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -52,20 +51,18 @@ namespace RetroBar
         private readonly DictionaryManager _dictionaryManager;
         private readonly ShellManager _shellManager;
         private readonly StartMenuMonitor _startMenuMonitor;
-        private readonly Updater _updater;
         private bool _fullScreenSuppressed;
         private int _openMenus;
         
         public WindowManager windowManager;
         public HotkeyManager hotkeyManager;
 
-        public Taskbar(WindowManager windowManager, DictionaryManager dictionaryManager, ShellManager shellManager, StartMenuMonitor startMenuMonitor, Updater updater, HotkeyManager hotkeyManager, AppBarScreen screen, AppBarEdge edge, AppBarMode mode)
+        public Taskbar(WindowManager windowManager, DictionaryManager dictionaryManager, ShellManager shellManager, StartMenuMonitor startMenuMonitor, HotkeyManager hotkeyManager, AppBarScreen screen, AppBarEdge edge, AppBarMode mode)
             : base(shellManager.AppBarManager, shellManager.ExplorerHelper, shellManager.FullScreenHelper, screen, edge, mode, 0)
         {
             _dictionaryManager = dictionaryManager;
             _shellManager = shellManager;
             _startMenuMonitor = startMenuMonitor;
-            _updater = updater;
             this.windowManager = windowManager;
             this.hotkeyManager = hotkeyManager;
 
@@ -487,11 +484,6 @@ namespace RetroBar
         #region Context menu
         private void ContextMenu_Opened(object sender, RoutedEventArgs e)
         {
-            if (_updater.IsUpdateAvailable)
-            {
-                UpdateAvailableMenuItem.Visibility = Visibility.Visible;
-            }
-
             if (NativeMethods.GetAsyncKeyState((int)System.Windows.Forms.Keys.ShiftKey) < 0 && Settings.Instance.ShowExitMenuItem)
             {
                 RestartMenuItem.Visibility = Visibility.Visible;
@@ -516,17 +508,6 @@ namespace RetroBar
         private void TaskManagerMenuItem_OnClick(object sender, RoutedEventArgs e)
         {
             ShellHelper.StartTaskManager();
-        }
-
-        private void UpdateAvailableMenuItem_OnClick(object sender, RoutedEventArgs e)
-        {
-            ProcessStartInfo psi = new ProcessStartInfo
-            {
-                FileName = _updater.DownloadUrl,
-                UseShellExecute = true
-            };
-
-            Process.Start(psi);
         }
 
         private void PropertiesMenuItem_OnClick(object sender, RoutedEventArgs e)

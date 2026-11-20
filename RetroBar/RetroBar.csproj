@@ -1,14 +1,21 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFrameworks>net6.0-windows;net10.0-windows</TargetFrameworks>
+    <AssemblyName>RetroBarOffline</AssemblyName>
+    <Product>RetroBar Offline</Product>
+    <Company>RecoveryTechCoLtd</Company>
+    <Description>Offline-only classic Windows taskbar fork based on RetroBar</Description>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ContinuousIntegrationBuild Condition="'$(ContinuousIntegrationBuild)' == ''">false</ContinuousIntegrationBuild>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <StartupObject>RetroBar.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AssemblyVersion>1.0.0.8</AssemblyVersion>
-    <FileVersion>1.0.0.8</FileVersion>
+    <AssemblyVersion>1.0.0.9</AssemblyVersion>
+    <FileVersion>1.0.0.9</FileVersion>
     <ApplicationIcon>Resources\retrobar.ico</ApplicationIcon>
     <Platforms>AnyCPU;x86;ARM64</Platforms>
     <LangVersion>12</LangVersion>

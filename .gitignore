@@ -276,3 +276,8 @@ __pycache__/
 
 ### VisualStudio Patch ###
 build/
+# Offline fork: do not accidentally upload published EXE/DLLs or NuGet intermediates.
+/out/
+**/bin/
+**/obj/
+*.user

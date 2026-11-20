@@ -1,0 +1,11 @@
+RetroBar Offline — independently maintained source fork
+
+Derived from RetroBar by Sam Johnson and RetroBar contributors.
+Original project: https://github.com/dremin/RetroBar
+Original license: Apache License 2.0 (see LICENSE).
+
+Offline-fork modifications include removing the updater, removing network-capable
+installer logic, removing external hyperlink launchers, restricting XAML theme
+loading, and adding static source audit and firewall helper scripts.
+
+This modified project is not endorsed or verified by the original author.

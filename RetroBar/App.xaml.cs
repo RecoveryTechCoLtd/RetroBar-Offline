@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using ManagedShell;
 using RetroBar.Utilities;
 using System.Windows;
@@ -28,7 +28,6 @@ namespace RetroBar
         private readonly ExplorerMonitor _explorerMonitor;
         private readonly ShellManager _shellManager;
         private readonly StartMenuMonitor _startMenuMonitor;
-        private readonly Updater _updater;
         private readonly HotkeyManager _hotkeyManager;
 
         public App()
@@ -38,7 +37,6 @@ namespace RetroBar
             _explorerMonitor = new ExplorerMonitor();
             _startMenuMonitor = new StartMenuMonitor(new AppVisibilityHelper(false));
             _dictionaryManager = new DictionaryManager();
-            _updater = new Updater();
             _hotkeyManager = new HotkeyManager();
 
             Settings.Instance.PropertyChanged += Settings_PropertyChanged;
@@ -59,7 +57,7 @@ namespace RetroBar
 
             _dictionaryManager.SetLanguageFromSettings();
             loadTheme();
-            _windowManager = new WindowManager(_dictionaryManager, _explorerMonitor, _shellManager, _startMenuMonitor, _updater, _hotkeyManager);
+            _windowManager = new WindowManager(_dictionaryManager, _explorerMonitor, _shellManager, _startMenuMonitor, _hotkeyManager);
             _startMenuMonitor.SetWindowManager(_windowManager);
         }
 
@@ -145,7 +143,6 @@ namespace RetroBar
             _dictionaryManager.Dispose();
             _shellManager.Dispose();
             _startMenuMonitor.Dispose();
-            _updater.Dispose();
             _hotkeyManager.Dispose();
             _logger.Dispose();
         }

@@ -426,13 +426,6 @@ namespace RetroBar.Utilities
             set => SetEnum(ref _clockClickAction, value);
         }
 
-        private bool _checkForUpdates = true;
-        public bool CheckForUpdates
-        {
-            get => _checkForUpdates;
-            set => Set(ref _checkForUpdates, value);
-        }
-
         private bool _showExitMenuItem = true;
         public bool ShowExitMenuItem
         {
